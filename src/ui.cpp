@@ -278,7 +278,7 @@ QVariant SheetModel::data(const QModelIndex &i, int role) const {
         return formatValue(calc.get(sheet, {i.row(), i.column()}), cell.style);
     }
     if (role == Qt::FontRole)
-        return fontFor(cell.style);
+        return fontFor(cell.style, zoom);
     if (role == Qt::BackgroundRole && !cell.style.background.empty())
         return QColor(q(cell.style.background));
     if (role == Qt::ForegroundRole) {
@@ -406,17 +406,17 @@ CellBookWindow::CellBookWindow() {
     auto *format = menuBar()->addMenu("서식(&O)");
     action(format, "굵게", QKeySequence::Bold, [this] {
         auto i = table->currentIndex();
-        bool b = !book.sheets[active].cells[{i.row(), i.column()}].style.bold;
+        bool b = !model->data(i, Qt::FontRole).value<QFont>().bold();
         style([b](Style &s) { s.bold = b; });
     });
     action(format, "기울임", QKeySequence::Italic, [this] {
         auto i = table->currentIndex();
-        bool b = !book.sheets[active].cells[{i.row(), i.column()}].style.italic;
+        bool b = !model->data(i, Qt::FontRole).value<QFont>().italic();
         style([b](Style &s) { s.italic = b; });
     });
     action(format, "밑줄", QKeySequence::Underline, [this] {
         auto i = table->currentIndex();
-        bool b = !book.sheets[active].cells[{i.row(), i.column()}].style.underline;
+        bool b = !model->data(i, Qt::FontRole).value<QFont>().underline();
         style([b](Style &s) { s.underline = b; });
     });
     action(format, "글자 색…", {}, [this] {
@@ -856,7 +856,7 @@ bool CellBookWindow::confirmSave() {
     auto answer = QMessageBox::question(this, "변경 내용 저장", "변경 내용을 저장할까요?",
                                         QMessageBox::Save | QMessageBox::Discard | QMessageBox::Cancel,
                                         QMessageBox::Save);
-    return answer == QMessageBox::Discard || (answer == QMessageBox::Save && save());
+    return answer == QMessageBox::Discard || (answer == QMessageBox::Save && save() && !dirty);
 }
 void CellBookWindow::newBook() {
     if (!confirmSave())
@@ -1134,7 +1134,7 @@ void CellBookWindow::sort(bool descending) {
         columns << q(columnName(c));
     auto chosen = QInputDialog::getItem(
         this, "정렬", "기준 열", columns,
-        std::clamp(table->currentIndex().column() - a.col, 0, columns.size() - 1), false, &ok);
+        std::clamp(table->currentIndex().column() - a.col, 0, int(columns.size()) - 1), false, &ok);
     if (!ok)
         return;
     int key = a.col + columns.indexOf(chosen);
@@ -1410,6 +1410,8 @@ void CellBookWindow::chart() {
 }
 void CellBookWindow::zoomTo(int value) {
     zoom = value;
+    model->zoom = value;
+    static_cast<SheetModel *>(frozen->model())->zoom = value;
     static_cast<CellDelegate *>(table->itemDelegate())->zoom = value;
     static_cast<CellDelegate *>(frozen->itemDelegate())->zoom = value;
     rebuild();

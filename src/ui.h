@@ -14,7 +14,7 @@
 class SheetModel : public QAbstractTableModel {
   public:
     grid::Workbook &book;
-    int sheet = 0;
+    int sheet = 0, zoom = 100;
     mutable grid::Calculator calc;
     bool showFormulas = false;
     std::function<void(grid::Position, QString)> edit;

@@ -21,6 +21,10 @@ FetchContent_Declare(qxlsx
   GIT_TAG 3192b808a283f8eb18c97b9a087bf085054e9bb0
   SOURCE_SUBDIR QXlsx)
 FetchContent_MakeAvailable(qxlsx)
+# QXlsx 1.4.9 uses startsWith("/") in its reader; allow its ASCII string conversion.
+get_target_property(qxlsx_definitions QXlsx COMPILE_DEFINITIONS)
+list(REMOVE_ITEM qxlsx_definitions QT_NO_CAST_FROM_ASCII)
+set_property(TARGET QXlsx PROPERTY COMPILE_DEFINITIONS "${qxlsx_definitions}")
 add_executable(CellBook WIN32 src/main.cpp src/ui.cpp src/io.cpp)
 target_link_libraries(CellBook PRIVATE cellbook_core Qt6::Widgets Qt6::PrintSupport QXlsx::QXlsx)
 if(MSVC)
