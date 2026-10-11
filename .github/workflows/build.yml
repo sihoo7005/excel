@@ -37,6 +37,9 @@ jobs:
           Copy-Item build/CellBook.exe dist/CellBook/
           windeployqt --release --no-translations --compiler-runtime dist/CellBook/CellBook.exe
           Copy-Item "$env:VCToolsRedistDir/x64/Microsoft.VC143.CRT/*.dll" dist/CellBook/ -Force
+          # windeployqt deploys qwindows but does not include the offscreen test platform.
+          $qtBin = Split-Path (Get-Command qmake).Source -Parent
+          Copy-Item "$qtBin/../plugins/platforms/qoffscreen.dll" dist/CellBook/platforms/ -Force
           Copy-Item README.md,LICENSE,THIRD_PARTY_NOTICES.md dist/CellBook/
           Copy-Item licenses dist/CellBook/ -Recurse
           Copy-Item examples dist/CellBook/ -Recurse
