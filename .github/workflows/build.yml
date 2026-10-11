@@ -5,6 +5,9 @@ on:
     tags: ['v*']
   pull_request:
   workflow_dispatch:
+concurrency:
+  group: cellbook-${{ github.ref }}
+  cancel-in-progress: true
 permissions:
   contents: write
 jobs:
@@ -42,8 +45,16 @@ jobs:
           $env:PATH = ($env:PATH -split ';' | Where-Object { $_ -notmatch '[\\/]Qt[\\/]' }) -join ';'
           Remove-Item Env:QT_PLUGIN_PATH -ErrorAction SilentlyContinue
           Remove-Item Env:QT_QPA_PLATFORM_PLUGIN_PATH -ErrorAction SilentlyContinue
-          $process = Start-Process -FilePath ./dist/CellBook/CellBook.exe -ArgumentList '--self-test' -Wait -PassThru
-          if ($process.ExitCode -ne 0) { throw 'Packaged app test failed' }
+          $process = Start-Process -FilePath ./dist/CellBook/CellBook.exe -ArgumentList '--self-test' -PassThru -RedirectStandardOutput package-stdout.txt -RedirectStandardError package-stderr.txt
+          if (-not $process.WaitForExit(30000)) {
+            Write-Host "Packaged app did not exit: $($process.MainWindowTitle)"
+            $process.Kill()
+            Get-Content package-stdout.txt,package-stderr.txt -ErrorAction SilentlyContinue
+            throw 'Packaged app test timed out'
+          }
+          $process.Refresh()
+          Get-Content package-stdout.txt,package-stderr.txt -ErrorAction SilentlyContinue
+          if ($process.ExitCode -ne 0) { throw "Packaged app test failed: $($process.ExitCode)" }
           $env:PATH = $savedPath
           Remove-Item Env:QT_QPA_PLATFORM
           Compress-Archive -Path dist/CellBook -DestinationPath dist/CellBook-Windows-x64.zip
