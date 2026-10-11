@@ -1,0 +1,86 @@
+name: Build and test CellBook
+on:
+  push:
+    branches: [main]
+    tags: ['v*']
+  pull_request:
+  workflow_dispatch:
+permissions:
+  contents: write
+jobs:
+  windows:
+    runs-on: windows-2022
+    steps:
+      - uses: actions/checkout@v4
+      - uses: ilammy/msvc-dev-cmd@v1
+      - name: Install Qt
+        uses: jurplel/install-qt-action@v4
+        with:
+          version: '6.8.3'
+          arch: win64_msvc2022_64
+          cache: true
+      - name: Configure
+        run: cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+      - name: Compile
+        run: cmake --build build --parallel 4
+      - name: Test formulas, files and GUI
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: ctest --test-dir build --output-on-failure
+      - name: Deploy application and runtime
+        shell: pwsh
+        run: |
+          New-Item -ItemType Directory -Force dist/CellBook | Out-Null
+          Copy-Item build/CellBook.exe dist/CellBook/
+          windeployqt --release --no-translations --compiler-runtime dist/CellBook/CellBook.exe
+          Copy-Item "$env:VCToolsRedistDir/x64/Microsoft.VC143.CRT/*.dll" dist/CellBook/ -Force
+          Copy-Item README.md,LICENSE,THIRD_PARTY_NOTICES.md dist/CellBook/
+          Copy-Item licenses dist/CellBook/ -Recurse
+          Copy-Item examples dist/CellBook/ -Recurse
+          $env:QT_QPA_PLATFORM = 'offscreen'
+          & ./dist/CellBook/CellBook.exe --self-test
+          if ($LASTEXITCODE -ne 0) { throw 'Packaged app test failed' }
+          Remove-Item Env:QT_QPA_PLATFORM
+          Compress-Archive -Path dist/CellBook -DestinationPath dist/CellBook-Windows-x64.zip
+      - name: Build installer
+        shell: pwsh
+        run: |
+          & "${env:ProgramFiles(x86)}/Inno Setup 6/ISCC.exe" packaging/installer.iss
+          if ($LASTEXITCODE -ne 0) { throw 'Installer build failed' }
+      - name: Upload portable app and installer
+        uses: actions/upload-artifact@v4
+        with:
+          name: CellBook-Windows-x64
+          path: |
+            dist/CellBook-Windows-x64.zip
+            dist/CellBook-Setup.exe
+          retention-days: 90
+      - name: Publish downloadable release
+        if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: latest
+          name: CellBook Windows
+          prerelease: true
+          body: |
+            C++ native spreadsheet for Windows 10/11 x64.
+            Download CellBook-Setup.exe to install, or unzip CellBook-Windows-x64.zip and run CellBook.exe.
+            Formula, file roundtrip, GUI and packaged executable checks pass before publication.
+            See README for supported features and Excel compatibility limits.
+          files: |
+            dist/CellBook-Windows-x64.zip
+            dist/CellBook-Setup.exe
+  linux:
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Qt and build tools
+        run: sudo apt-get update && sudo apt-get install -y qt6-base-dev qt6-base-private-dev ninja-build
+      - name: Configure and compile
+        run: |
+          cmake -S . -B build -G Ninja -DCMAKE_BUILD_TYPE=Release
+          cmake --build build --parallel 4
+      - name: Test
+        env:
+          QT_QPA_PLATFORM: offscreen
+        run: ctest --test-dir build --output-on-failure

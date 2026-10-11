@@ -1,0 +1,283 @@
+{
+  "format": "CellBook",
+  "version": 1,
+  "sheets": [
+    {
+      "name": "가계부",
+      "rows": 1000,
+      "cols": 100,
+      "cells": [
+        {
+          "r": 0,
+          "c": 0,
+          "raw": "항목",
+          "style": {
+            "bold": true,
+            "background": "#17684e",
+            "foreground": "#ffffff",
+            "size": 12
+          }
+        },
+        {
+          "r": 0,
+          "c": 1,
+          "raw": "예산",
+          "style": {
+            "bold": true,
+            "background": "#17684e",
+            "foreground": "#ffffff",
+            "size": 12
+          }
+        },
+        {
+          "r": 0,
+          "c": 2,
+          "raw": "실제 지출",
+          "style": {
+            "bold": true,
+            "background": "#17684e",
+            "foreground": "#ffffff",
+            "size": 12
+          }
+        },
+        {
+          "r": 0,
+          "c": 3,
+          "raw": "남은 금액",
+          "style": {
+            "bold": true,
+            "background": "#17684e",
+            "foreground": "#ffffff",
+            "size": 12
+          }
+        },
+        {
+          "r": 1,
+          "c": 0,
+          "raw": "식비",
+          "style": {}
+        },
+        {
+          "r": 1,
+          "c": 1,
+          "raw": "150000",
+          "style": {
+            "numberFormat": "₩#,##0"
+          }
+        },
+        {
+          "r": 1,
+          "c": 2,
+          "raw": "125000",
+          "style": {
+            "numberFormat": "₩#,##0"
+          }
+        },
+        {
+          "r": 1,
+          "c": 3,
+          "raw": "=B2-C2",
+          "style": {
+            "numberFormat": "₩#,##0",
+            "background": "#e3f3eb"
+          }
+        },
+        {
+          "r": 2,
+          "c": 0,
+          "raw": "교통",
+          "style": {}
+        },
+        {
+          "r": 2,
+          "c": 1,
+          "raw": "50000",
+          "style": {
+            "numberFormat": "₩#,##0"
+          }
+        },
+        {
+          "r": 2,
+          "c": 2,
+          "raw": "32000",
+          "style": {
+            "numberFormat": "₩#,##0"
+          }
+        },
+        {
+          "r": 2,
+          "c": 3,
+          "raw": "=B3-C3",
+          "style": {
+            "numberFormat": "₩#,##0",
+            "background": "#e3f3eb"
+          }
+        },
+        {
+          "r": 3,
+          "c": 0,
+          "raw": "도서",
+          "style": {}
+        },
+        {
+          "r": 3,
+          "c": 1,
+          "raw": "80000",
+          "style": {
+            "numberFormat": "₩#,##0"
+          }
+        },
+        {
+          "r": 3,
+          "c": 2,
+          "raw": "63000",
+          "style": {
+            "numberFormat": "₩#,##0"
+          }
+        },
+        {
+          "r": 3,
+          "c": 3,
+          "raw": "=B4-C4",
+          "style": {
+            "numberFormat": "₩#,##0",
+            "background": "#e3f3eb"
+          }
+        },
+        {
+          "r": 4,
+          "c": 0,
+          "raw": "취미",
+          "style": {}
+        },
+        {
+          "r": 4,
+          "c": 1,
+          "raw": "60000",
+          "style": {
+            "numberFormat": "₩#,##0"
+          }
+        },
+        {
+          "r": 4,
+          "c": 2,
+          "raw": "42000",
+          "style": {
+            "numberFormat": "₩#,##0"
+          }
+        },
+        {
+          "r": 4,
+          "c": 3,
+          "raw": "=B5-C5",
+          "style": {
+            "numberFormat": "₩#,##0",
+            "background": "#e3f3eb"
+          }
+        },
+        {
+          "r": 6,
+          "c": 0,
+          "raw": "합계",
+          "style": {
+            "bold": true
+          }
+        },
+        {
+          "r": 6,
+          "c": 1,
+          "raw": "=SUM(B2:B5)",
+          "style": {
+            "bold": true,
+            "numberFormat": "₩#,##0",
+            "border": true
+          }
+        },
+        {
+          "r": 6,
+          "c": 2,
+          "raw": "=SUM(C2:C5)",
+          "style": {
+            "bold": true,
+            "numberFormat": "₩#,##0",
+            "border": true
+          }
+        },
+        {
+          "r": 6,
+          "c": 3,
+          "raw": "=SUM(D2:D5)",
+          "style": {
+            "bold": true,
+            "numberFormat": "₩#,##0",
+            "border": true
+          }
+        },
+        {
+          "r": 8,
+          "c": 0,
+          "raw": "예산 사용률",
+          "style": {}
+        },
+        {
+          "r": 8,
+          "c": 1,
+          "raw": "=C7/B7",
+          "style": {
+            "numberFormat": "0.00%"
+          }
+        },
+        {
+          "r": 10,
+          "c": 0,
+          "raw": "상태",
+          "style": {}
+        },
+        {
+          "r": 10,
+          "c": 1,
+          "raw": "=IF(D7>=0,\"예산 이내\",\"초과\")",
+          "style": {
+            "bold": true,
+            "foreground": "#17684e"
+          }
+        }
+      ],
+      "widths": [
+        [
+          0,
+          170
+        ],
+        [
+          1,
+          150
+        ],
+        [
+          2,
+          150
+        ],
+        [
+          3,
+          150
+        ]
+      ],
+      "heights": [
+        [
+          0,
+          36
+        ]
+      ],
+      "merges": [],
+      "charts": [
+        {
+          "title": "예산과 실제 지출",
+          "kind": 0,
+          "r0": 0,
+          "c0": 0,
+          "r1": 4,
+          "c1": 2
+        }
+      ]
+    }
+  ]
+}

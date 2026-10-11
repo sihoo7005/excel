@@ -1,0 +1,8 @@
+/build*/
+/dist/
+/core_test
+*.o
+*.obj
+*.pdb
+*.s
+*.user
