@@ -851,7 +851,17 @@ void CellBookWindow::history(bool redo) {
     dirty = true;
     rebuild();
 }
+void CellBookWindow::commitEditing() {
+    auto current = table->currentIndex();
+    if (formula->hasFocus() && current.isValid() &&
+        formula->text() != model->data(current, Qt::EditRole).toString())
+        model->setData(current, formula->text());
+    auto *focus = QApplication::focusWidget();
+    if (focus && table->isAncestorOf(focus) && qobject_cast<QLineEdit *>(focus))
+        table->setFocus(); // The Qt delegate commits the active editor on focus loss.
+}
 bool CellBookWindow::confirmSave() {
+    commitEditing();
     if (!dirty)
         return true;
     auto answer = QMessageBox::question(this, "변경 내용 저장", "변경 내용을 저장할까요?",
@@ -896,6 +906,7 @@ bool CellBookWindow::loadFile(const QString &path, bool prompt) {
     return true;
 }
 bool CellBookWindow::save(bool saveAs) {
+    commitEditing();
     auto ext = QFileInfo(filePath).suffix().toLower();
     bool imported = ext == "xlsx" || ext == "csv" || ext == "tsv";
     QString path = filePath;
@@ -1587,5 +1598,18 @@ void CellBookWindow::selfTest() {
     require(saveWorkbook(dir.filePath("test.cellbook"), book).isEmpty(), "GUI save");
     require(loadFile(dir.filePath("test.cellbook"), false), "GUI load");
     require(book.sheets.size() == 2, "GUI reload");
+    show();
+    table->setCurrentIndex(model->index(10, 0));
+    table->edit(model->index(10, 0));
+    QApplication::processEvents();
+    auto *editor = qobject_cast<QLineEdit *>(QApplication::focusWidget());
+    require(editor && table->isAncestorOf(editor), "native cell editor");
+    editor->setText("입력 중 저장");
+    filePath = dir.filePath("draft.cellbook");
+    require(save(), "save active editor");
+    Workbook draft;
+    require(loadWorkbook(filePath, draft).isEmpty() &&
+                draft.sheets[0].cells.at({10, 0}).raw == "입력 중 저장",
+            "editor committed before save");
     dirty = false;
 }

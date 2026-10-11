@@ -62,6 +62,7 @@ class CellBookWindow : public QMainWindow {
     void updateSelection();
     void updateTitle();
     void history(bool redo);
+    void commitEditing();
     bool confirmSave();
     bool save(bool saveAs = false);
     void newBook();

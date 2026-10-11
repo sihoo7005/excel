@@ -38,8 +38,13 @@ jobs:
           Copy-Item licenses dist/CellBook/ -Recurse
           Copy-Item examples dist/CellBook/ -Recurse
           $env:QT_QPA_PLATFORM = 'offscreen'
-          & ./dist/CellBook/CellBook.exe --self-test
-          if ($LASTEXITCODE -ne 0) { throw 'Packaged app test failed' }
+          $savedPath = $env:PATH
+          $env:PATH = ($env:PATH -split ';' | Where-Object { $_ -notmatch '[\\/]Qt[\\/]' }) -join ';'
+          Remove-Item Env:QT_PLUGIN_PATH -ErrorAction SilentlyContinue
+          Remove-Item Env:QT_QPA_PLATFORM_PLUGIN_PATH -ErrorAction SilentlyContinue
+          $process = Start-Process -FilePath ./dist/CellBook/CellBook.exe -ArgumentList '--self-test' -Wait -PassThru
+          if ($process.ExitCode -ne 0) { throw 'Packaged app test failed' }
+          $env:PATH = $savedPath
           Remove-Item Env:QT_QPA_PLATFORM
           Compress-Archive -Path dist/CellBook -DestinationPath dist/CellBook-Windows-x64.zip
       - name: Build installer
