@@ -1,4 +1,5 @@
 #include "io.h"
+#include <QBuffer>
 #include <QDateTime>
 #include <QFile>
 #include <QFileInfo>
@@ -311,12 +312,10 @@ QString saveWorkbook(const QString &path, const Workbook &book, int activeSheet)
         return file.errorString();
     if (ext == "xlsx") {
         QXlsx::Document doc;
-        auto original = doc.sheetNames();
-        doc.renameSheet(original.first(), q(book.sheets[0].name));
         Calculator calc(book);
         for (size_t i = 0; i < book.sheets.size(); ++i) {
             auto &s = book.sheets[i];
-            if (i && !doc.addSheet(q(s.name)))
+            if (!doc.addSheet(q(s.name)))
                 return "시트를 생성할 수 없습니다.";
             doc.selectSheet(q(s.name));
             auto *w = doc.currentWorksheet();
@@ -361,8 +360,13 @@ QString saveWorkbook(const QString &path, const Workbook &book, int activeSheet)
             }
         }
         doc.selectSheet(std::clamp(activeSheet, 0, int(book.sheets.size()) - 1));
-        if (!doc.saveAs(&file))
+        QByteArray bytes;
+        QBuffer buffer(&bytes);
+        buffer.open(QIODevice::WriteOnly);
+        if (!doc.saveAs(&buffer))
             return "Excel 파일 저장에 실패했습니다.";
+        if (file.write(bytes) != bytes.size())
+            return file.errorString();
     } else if (ext == "cellbook") {
         QJsonArray sheets;
         for (auto &s : book.sheets) {

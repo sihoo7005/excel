@@ -529,6 +529,7 @@ CellBookWindow::CellBookWindow() {
     bar->addSeparator();
     bar->addAction(format->actions()[3]);
     bar->addAction(format->actions()[4]);
+    addToolBarBreak();
     auto *bar2 = addToolBar("셀 서식");
     bar2->setMovable(false);
     numberFormats = new QComboBox(bar2);

@@ -110,13 +110,17 @@ Value number(Value v) {
 bool truth(Value v) {
     return v.kind == Value::Text ? !v.text.empty() : v.number != 0;
 }
-using Arg = std::vector<Value>;
+struct Arg : std::vector<Value> {
+    using std::vector<Value>::vector;
+    bool fromReference = false;
+};
 struct Parser {
     Calculator &calc;
     int sheet;
     std::string s;
     size_t at = 0;
     int depth = 0;
+    bool evaluating = true;
     void space() {
         while (at < s.size() && std::isspace((unsigned char)s[at]))
             ++at;
@@ -253,12 +257,17 @@ struct Parser {
             if ((long long)(r1 - r0 + 1) * (c1 - c0 + 1) > 1000000)
                 return {Value::error("#NUM!")};
             Arg a;
+            a.fromReference = true;
+            if (!evaluating)
+                return a;
             for (int r = r0; r <= r1; ++r)
                 for (int c = c0; c <= c1; ++c)
                     a.push_back(calc.get(sh, {r, c}));
             return a;
         }
-        return {calc.get(sh, p)};
+        Arg result{evaluating ? calc.get(sh, p) : Value{}};
+        result.fromReference = true;
+        return result;
     }
     Arg primary() {
         space();
@@ -292,10 +301,12 @@ struct Parser {
             return {Value::str(v)};
         }
         if (s[at] == '#') {
-            auto start = at;
-            while (at < s.size() && s[at] != ',' && s[at] != ')' && s[at] != ';' && s[at] != ' ')
-                ++at;
-            return {Value::error(s.substr(start, at - start))};
+            for (auto error :
+                 {"#DIV/0!", "#VALUE!", "#REF!", "#NAME?", "#NUM!", "#N/A", "#CYCLE!", "#NULL!"}) {
+                if (eat(error))
+                    return {Value::error(error)};
+            }
+            throw std::runtime_error("error token");
         }
         if (std::isdigit((unsigned char)s[at]) || s[at] == '.') {
             char *e = nullptr;
@@ -340,6 +351,29 @@ struct Parser {
         }
         auto name = upper(id);
         if (eat("(")) {
+            // Parse both branches for valid syntax but evaluate only the selected branch.
+            if (name == "IF" || name == "IFERROR") {
+                const bool previous = evaluating;
+                auto first = scalar(expression());
+                if (!(eat(",") || eat(";")))
+                    throw std::runtime_error("arguments");
+                bool chooseSecond = name == "IFERROR" ? first.kind == Value::Error : truth(first);
+                evaluating = previous && chooseSecond && (name == "IFERROR" || first.kind != Value::Error);
+                auto second = scalar(expression());
+                Value third = Value::boolean(false);
+                if (name == "IF" && (eat(",") || eat(";"))) {
+                    evaluating = previous && !chooseSecond && first.kind != Value::Error;
+                    third = scalar(expression());
+                }
+                evaluating = previous;
+                if (!eat(")"))
+                    throw std::runtime_error("arguments");
+                if (name == "IFERROR")
+                    return {chooseSecond ? second : first};
+                if (first.kind == Value::Error)
+                    return {first};
+                return {chooseSecond ? second : third};
+            }
             std::vector<Arg> args;
             if (!eat(")")) {
                 do {
@@ -355,21 +389,22 @@ struct Parser {
         return reference(id, sheet);
     }
     Value function(const std::string &n, const std::vector<Arg> &args) {
+        static const std::map<std::string, std::pair<size_t, size_t>> arity{
+            {"SUM", {0, 255}},     {"AVERAGE", {0, 255}}, {"MIN", {0, 255}},     {"MAX", {0, 255}},
+            {"COUNT", {0, 255}},   {"COUNTA", {0, 255}},  {"PRODUCT", {0, 255}}, {"AND", {1, 255}},
+            {"OR", {1, 255}},      {"NOT", {1, 1}},       {"ISBLANK", {1, 1}},   {"ISNUMBER", {1, 1}},
+            {"ISERROR", {1, 1}},   {"ABS", {1, 1}},       {"INT", {1, 1}},       {"SQRT", {1, 1}},
+            {"POWER", {2, 2}},     {"MOD", {2, 2}},       {"ROUND", {2, 2}},     {"ROUNDUP", {2, 2}},
+            {"ROUNDDOWN", {2, 2}}, {"COUNTIF", {2, 2}},   {"SUMIF", {2, 3}},     {"LEN", {1, 1}},
+            {"LEFT", {1, 2}},      {"RIGHT", {1, 2}},     {"MID", {3, 3}},       {"UPPER", {1, 1}},
+            {"LOWER", {1, 1}},     {"TRIM", {1, 1}},      {"CONCAT", {1, 255}},  {"CONCATENATE", {1, 255}}};
+        auto spec = arity.find(n);
+        if (spec == arity.end())
+            return Value::error("#NAME?");
+        if (args.size() < spec->second.first || args.size() > spec->second.second)
+            return Value::error("#VALUE!");
         auto arg = [&](size_t i) { return i < args.size() ? scalar(args[i]) : Value{}; };
         auto num = [&](size_t i) { return number(arg(i)); };
-        if (n == "IF") {
-            if (args.size() < 2 || args.size() > 3)
-                return Value::error("#VALUE!");
-            auto c = arg(0);
-            if (c.kind == Value::Error)
-                return c;
-            return truth(c) ? arg(1) : args.size() == 3 ? arg(2) : Value::boolean(false);
-        }
-        if (n == "IFERROR") {
-            if (args.size() != 2)
-                return Value::error("#VALUE!");
-            return arg(0).kind == Value::Error ? arg(1) : arg(0);
-        }
         if (n == "ISBLANK")
             return Value::boolean(arg(0).kind == Value::Blank);
         if (n == "ISNUMBER")
@@ -397,7 +432,7 @@ struct Parser {
                     if (v.kind == Value::Blank)
                         continue;
                     if (v.kind == Value::Text || v.kind == Value::Boolean) {
-                        if (a.size() > 1)
+                        if (a.fromReference)
                             continue;
                         v = number(v);
                         if (v.kind == Value::Error)

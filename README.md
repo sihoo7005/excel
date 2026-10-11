@@ -2,6 +2,8 @@
 
 C++로 만든 윈도우용 스프레드시트 앱입니다. HTML이나 브라우저 화면을 사용하지 않습니다. Qt 네이티브 위젯과 자체 수식 계산 엔진을 사용합니다. Microsoft Excel과는 별개의 프로그램입니다.
 
+![CellBook 화면](docs/screenshot.png)
+
 ## 다운로드와 실행
 
 [최신 윈도우 다운로드](https://github.com/sihoo7005/excel/releases/tag/latest)
